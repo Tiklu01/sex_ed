@@ -1,103 +1,87 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+export default function CondomRecommender() {
+  const [girth, setGirth] = useState(0);
+  const [length, setLength] = useState(0);
+  const [unit, setUnit] = useState("cm");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  interface Condom {
+    id: string;
+    name: string;
+    girth: number;
+    length: number;
+    imageUrl: string;
+    link: string;
+  }
+
+  const [results, setResults] = useState<Condom[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null); // ✅ Fix TS error
+
+  const convertToCm = (value: number) => (unit === "inch" ? value * 2.54 : value);
+  const calculateVolume = (g: number, l: number) => ((Math.PI * (g / Math.PI) ** 2 * l) / 1000).toFixed(2);
+
+  const fetchCondoms = async () => {
+    setLoading(true);
+    setError(null);
+    const girthCm = convertToCm(girth);
+    const lengthCm = convertToCm(length);
+
+    try {
+      const res = await fetch(`/api/recommend?girth=${girthCm}&length=${lengthCm}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No suitable condom found.");
+      setResults(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center p-6">
+      <h1 className="text-3xl font-bold mb-4">Condom Recommender</h1>
+      <div className="bg-gray-800 p-6 rounded-xl w-full max-w-md shadow-md">
+        <label className="block mb-2">Girth ({unit})</label>
+                <input 
+          type="number" 
+          value={girth || ""} // Ensure empty string instead of NaN
+          onChange={(e) => setGirth(parseFloat(e.target.value) || 0)} 
+          className="w-full p-2 rounded bg-gray-700 text-white" 
+        />      
+        <label className="block mt-4 mb-2">Length ({unit})</label>
+        <input 
+          type="number" 
+          value={length || ""} 
+          onChange={(e) => setLength(parseFloat(e.target.value) || 0)} 
+          className="w-full p-2 rounded bg-gray-700 text-white" 
+        />
+        <label className="block mt-4">Unit</label>
+        <select onChange={(e) => setUnit(e.target.value)} className="w-full p-2 rounded bg-gray-700 text-white">
+          <option value="cm">Centimeters</option>
+          <option value="inch">Inches</option>
+        </select>
+        
+        <button onClick={fetchCondoms} className="mt-4 bg-blue-500 p-2 w-full rounded">Find Condoms</button>
+      </div>
+      
+      {loading && <p className="mt-4">Loading...</p>}
+      {error && <p className="mt-4 text-red-500">{error}</p>}
+
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {results.map((condom) => (
+          <div key={condom.id} className="bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center">
+            <Image src={condom.imageUrl} alt={condom.name} width={150} height={150} className="rounded" />
+            <h2 className="text-lg font-bold mt-2">{condom.name}</h2>
+            <p className="text-sm">Girth: {condom.girth} cm | Length: {condom.length} cm</p>
+            <p className="text-sm">Volume: {calculateVolume(condom.girth, condom.length)} mL</p>
+            <a href={condom.link} target="_blank" className="text-blue-400 mt-2">View Product</a>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
